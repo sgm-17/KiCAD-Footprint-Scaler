@@ -1,5 +1,5 @@
 # Script made by Claude (Anthropic) and ChatGPT (OpenAI) as prompted by Diogo Aleixo
-
+# v1.1 loops to enable batch processing quicker
 
 import re
 import tkinter as tk
@@ -83,13 +83,13 @@ def create_output_filename(input_filename: str, scale_factor: float) -> str:
         return f"{base_name}_scaled{ext}"
 
 def get_scale_factor() -> float:
-    """Prompt user for scale factor with input validation."""
+    """Prompt user for scale factor with input validation. Returns 0 to select new file."""
     while True:
         try:
-            scale_str = input("Enter scale factor (e.g., 2.0 for double size): ")
+            scale_str = input("\nEnter scale factor (e.g., 2.0 for double size) (enter 0 to select new file): ")
             scale_factor = float(scale_str)
-            if scale_factor <= 0:
-                print("Scale factor must be positive!")
+            if scale_factor < 0:
+                print("Scale factor must be non-negative!")
                 continue
             return scale_factor
         except ValueError:
@@ -111,11 +111,43 @@ def create_file_dialog_window(title: str) -> tk.Tk:
     
     return window
 
+def process_footprint(input_file: str) -> bool:
+    """Process a single footprint file. Returns True to continue with same file, False to select new file."""
+    # Read input file
+    with open(input_file, 'r') as f:
+        content = f.read()
+
+    while True:
+        # Get scale factor from user
+        scale_factor = get_scale_factor()
+        
+        # If scale factor is 0, return False to select new file
+        if scale_factor == 0:
+            return False
+
+        # Scale the footprint
+        scaled_content = scale_footprint(content, scale_factor)
+
+        # Create output filename and path
+        output_filename = create_output_filename(os.path.basename(input_file), scale_factor)
+        output_file = os.path.join(os.path.dirname(input_file), output_filename)
+
+        # Write output file
+        try:
+            with open(output_file, 'w') as f:
+                f.write(scaled_content)
+            print(f"\nScaled footprint saved successfully to:\n{output_file}")
+        except Exception as e:
+            print(f"Error saving file: {e}")
+            return False
+
+        # Continue with same file
+        return True
 
 def refocus_terminal():
     """Refocus the terminal window after file dialog closes."""
     # Wait a moment to let the dialog close and avoid race conditions
-    time.sleep(0.5)
+    time.sleep(0.2)
     
     # Try to find the terminal window (cross-platform)
     try:
@@ -129,62 +161,34 @@ def refocus_terminal():
         print(f"Error while refocusing terminal: {e}")
 
 
-
 def main():
-    # Create and configure the root window for file dialogs
-    root = create_file_dialog_window("KiCad Footprint Scaler")
+    while True:
+        # Create and configure the root window for file dialogs
+        root = create_file_dialog_window("KiCad Footprint Scaler")
 
-    # Open file dialog
-    print("Select the KiCad footprint file to scale...")
-    input_file = filedialog.askopenfilename(
-        parent=root,
-        title="Select KiCad Footprint File",
-        filetypes=[("KiCad Footprint", "*.kicad_mod"), ("All Files", "*.*")]
-    )
+        # Open file dialog
+        print("\nSelect the KiCad footprint file to scale...")
+        input_file = filedialog.askopenfilename(
+            parent=root,
+            title="Select KiCad Footprint File",
+            filetypes=[("KiCad Footprint", "*.kicad_mod"), ("All Files", "*.*")]
+        )
 
-    if not input_file:  # User cancelled
-        print("No file selected. Exiting...")
+        if not input_file:  # User cancelled
+            print("No file selected. Exiting...")
+            root.destroy()
+            return
+
+        # Close the file dialog and return focus to the terminal
+        root.update()
         root.destroy()
-        return
 
-    # Close the file dialog and return focus to the terminal
-    root.update()
-    root.destroy()
+        # Refocus terminal after file dialog closes
+        refocus_terminal()
 
-    # Refocus terminal after file dialog closes
-    refocus_terminal()
-
-    # Get scale factor from user
-    scale_factor = get_scale_factor()
-
-    # Read input file
-    with open(input_file, 'r') as f:
-        content = f.read()
-
-    # Scale the footprint
-    scaled_content = scale_footprint(content, scale_factor)
-
-    # Create output filename
-    output_file = create_output_filename(input_file, scale_factor)
-
-    # Ask user where to save the file
-    print("\nSelect where to save the scaled footprint...")
-    save_file = filedialog.asksaveasfilename(
-        title="Save Scaled Footprint As",
-        initialfile=os.path.basename(output_file),
-        defaultextension=".kicad_mod",
-        filetypes=[("KiCad Footprint", "*.kicad_mod"), ("All Files", "*.*")]
-    )
-
-    if not save_file:  # User cancelled
-        print("Save cancelled. Exiting...")
-        return
-
-    # Write output file
-    with open(save_file, 'w') as f:
-        f.write(scaled_content)
-
-    print(f"\nScaled footprint saved successfully to:\n{save_file}")
+        # Process the footprint until user chooses to select a new file
+        while process_footprint(input_file):
+            continue
 
 if __name__ == "__main__":
     import os
