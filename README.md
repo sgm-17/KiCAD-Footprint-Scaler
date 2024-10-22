@@ -7,3 +7,6 @@
  .exe is provided for ease of use. You can also run it from the script.
 
  Made with Claude and ChatGPT.
+
+
+If you want some KiCAD footprints of useful logos check out my library: https://github.com/sgm-17/KiCAD-Logo-Footprints
