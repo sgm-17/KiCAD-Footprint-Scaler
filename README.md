@@ -1,5 +1,5 @@
 # KiCAD-Footprint-Scaler
- Simple script to scale KiCAD graphics footprints. Useful to scale logos on the fly.
+ Simple script to scale KiCAD graphics footprints. Useful to scale logos in a batch.
  Just export the footprint from KiCAD, input it when prompted by the terminal and choose the scale factor.
 
  If the name of the footprint has a scale in milimeters (ex: 5.0mm) the script will update the scale in the name of the output file.
